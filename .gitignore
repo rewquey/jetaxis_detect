@@ -1,0 +1,18 @@
+# (Pre-)Compiled stuff
+*.pyc
+*.o
+*.so
+*.x
+*.mod
+*.pickle
+.precc
+# Swap, temp and backup files
+*.swp
+*.swo
+*~
+*.old
+*.orig
+.DS_Store
+# Input / Output
+in
+out

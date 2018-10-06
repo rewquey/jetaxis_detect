@@ -1,0 +1,27 @@
+Jet axis detection algorithm
+============================
+
+For scientific background and a description of the algorithm, please refer to the Spensberger et al. 2017. (doi: 10.1175/MWR-D-16-0467.1)
+
+
+Requirements
+------------
+
+ * gfortran to compile the Fortran code
+ * python package numpy for the f2py compiler connecting Fortran with python
+ * python package netCDF4 for reading netCDF files in the example script
+
+Installation
+------------
+
+Use the provided compile script to compile the library as a shared object (to be linked and used, for example, in other Fortran programs), as well as the python module. The Fortran code does not have external dependencies, so the compilation should work rather straight-forward on most systems.
+
+Usage
+-----
+
+Refer to the provided example script ``jetaxis_detect.py`` as an example of how to use jet detection with a typical input data set.
+
+License
+-------
+
+See LICENSE.

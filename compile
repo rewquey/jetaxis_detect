@@ -1,0 +1,83 @@
+#!/bin/bash
+# Compile scrip for dynlib
+#
+# 0. User-editable configuration 
+
+# Define compile mode:
+#   Possible values: "productive" or "debug". 
+#   The debug mode includes array boundary checks, warnings for floating point exceptions
+#   and helpful error messages in case of such errors, but slows down execution considerably.
+COMPILE_OPTS="productive"
+
+# Choose python version to compile for, empty for default
+PY_VER="3.4"
+F2PY="f2py$PY_VER"
+PYTHON="python$PY_VER"
+
+#######################################################################
+# Obs: The order of the files in $files has to reflect the interdepencies!
+base=`pwd`
+src="$base/lib"
+precc="$src/.precc"
+
+files="jet_detect.f90"
+
+python_library="jet_detect"
+fortran_library="libjet_detect"
+pysig="${precc}/$python_library.pyf"
+
+# TODO: Make code ready for -pedantic
+if [ "$COMPILE_OPTS" == 'productive' ]; then
+	OPTS="-fPIC -O2 -fno-range-check"
+	F2PY_OPTS=""
+	flagset="\e[0;32mproductive\e[0m";
+elif [ "$COMPILE_OPTS" == 'debug' ]; then
+	OPTS="-fPIC -fcheck=all -ffpe-trap=invalid,zero,overflow -fbacktrace -g -fno-range-check"
+	F2PY_OPTS="--debug-capi --debug"
+	flagset="\e[0;31mdebug\e[0m";
+else
+	echo "Configuration error: COMPILE_OPTS must be one of ('productive', 'debug')"
+	exit 1
+fi
+
+# Empty precompiler directory
+mkdir -p $precc
+rm -rf ${precc}/*
+
+# Anticipate compiled object file names
+fileso=""
+for file in $files
+	do fileso="$fileso ${file%.*}.o"
+done
+
+
+# 1. Creating new python signature file
+echo "Stage 1: Creating python signature file"
+
+cd $src
+cp $files $precc
+cd $precc
+touch build
+
+$F2PY -m $python_library -h $pysig --overwrite-signature $files > /dev/null
+sed "s/kind=nc/kind=16/g" $pysig | sed "s/_nc//g" |
+sed "s/kind=nr/kind=8/g" | sed "s/_nr//g" |
+sed "s/kind=ni/kind=4/g" | sed "s/_ni//g" |
+grep -v "nan=" > ${pysig}_tmp
+mv ${pysig}_tmp $pysig
+
+# 2. Compiling the fortran modules 
+echo -e "Stage 2: Compiling Fortran shared object using $flagset options."
+gfortran $OPTS -c $files 
+gfortran -shared $fileso $OPTS -o $fortran_library.so 
+mv $fortran_library.so $base
+
+
+# 3. Compiling the shared object usable from within python
+echo -e "Stage 3: Compiling the python module using $flagset options."
+$F2PY -c --fcompiler=gnu95 $F2PY_OPTS --opt="\"$OPTS\"" $pysig $files > /dev/null
+mv ${python_library}*.so $base
+
+echo "Done compiling the jet detection."
+
+#
