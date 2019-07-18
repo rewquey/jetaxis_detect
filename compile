@@ -10,7 +10,7 @@
 COMPILE_OPTS="productive"
 
 # Choose python version to compile for, empty for default
-PY_VER="3.4"
+PY_VER=""
 F2PY="f2py$PY_VER"
 PYTHON="python$PY_VER"
 

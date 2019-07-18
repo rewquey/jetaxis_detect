@@ -65,14 +65,11 @@ contains
     !
     !real(kind=nr) :: us(nz,ny,nx), vs(nz,ny,nx)
     real(kind=nr) :: dsheardx(nz,ny,nx), dsheardy(nz,ny,nx), &
-                 &   jetint(nz,ny,nx), shear(nz,ny,nx), ones(ny,nx), ff(nz,ny,nx)
+                 &   jetint(nz,ny,nx), shear(nz,ny,nx), ff(nz,ny,nx)
     integer(kind=ni) :: i,j,k, ip1,im1
     ! -----------------------------------------------------------------
     !
     write(*,*) 'preparing'
-    !
-    ! Would be interesting, if otherwise :-)
-    ones(:,:) = 1.0_nr
     !
     ff = sqrt( u(:,:,:)**2_ni + v(:,:,:)**2_ni )
     !
@@ -339,7 +336,7 @@ contains
        linecnt    = 0_ni ! number of lines
        ptcnt      = 0_ni ! total numer of points
        lineptcnt(:) = 0_ni ! number of points per line
-       call linejoin(zerocnt, nf*3_ni, nx,ny, zeroloc(:,2_ni), zeroloc(:,1_ni), &
+       call linejoin(zerocnt, nf*5_ni, nx,ny, zeroloc(:,2_ni), zeroloc(:,1_ni), &
                & recj, reci, linelen, lineptcnt, dx,dy) 
        !
        off = 0_ni
@@ -585,8 +582,8 @@ contains
     integer(kind=ni), intent(inout) :: oidx(cnt), donecnt
     logical, intent(inout) :: used(cnt)
     !
-    real   (kind=nr) :: dist, distji
-    integer(kind=ni) :: i,j, m, nn,nm, di
+    real   (kind=nr) :: di,dj, dist,distji
+    integer(kind=ni) :: i,j, m, nn,nm
     ! -----------------------------------------------------------------
     !
     donecnt = donecnt + 1_ni
@@ -595,18 +592,27 @@ contains
     oidx(nn) = n
     dists(nn,nn) = 0.0_nr
     !
-    i = iidx(n)
-    j = jidx(n)
+    i = iidx(n) ! Cast to integer
+    j = jidx(n) ! Cast to integer
     !
     do m = 1_ni,cnt
        if ( used(m) ) cycle
        !
        di = iidx(m) - iidx(n)
-       if ( di > size(dx,2_ni)/2_ni ) di = di - size(dx,2_ni)
-       if ( di < -size(dx,2_ni)/2_ni ) di = di + size(dx,2_ni)
-       dist = sqrt( (dx(j,i)*(di)/2.0_nr)**2.0_nr + &
-                  & (dy(j,i)*(jidx(m)-jidx(n))/2.0_nr)**2.0_nr   )
-       distji = sqrt(di**2_ni + (jidx(m)-jidx(n))**2_ni)
+       dj = jidx(m) - jidx(n)
+       !
+       ! Take into account periodicity in x
+       if ( grid_cyclic_ew ) then
+          if ( di > nx/2.0_nr ) then
+             di = di - nx
+          elseif ( di < -nx/2.0_nr ) then
+             di = di + nx
+          end if
+       end if
+       !
+       dist = sqrt( (dx(j,i)*di/2.0_nr)**2.0_nr + &
+                  & (dy(j,i)*dj/2.0_nr)**2.0_nr   )
+       distji = sqrt(di**2_ni + dj**2_ni)
        !
        ! if we found a pair of close points
        if ( distji <= searchrad ) then
